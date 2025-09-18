@@ -1,7 +1,25 @@
 <script setup>
 import { ref, onMounted } from "vue";
-import { useCarStore } from "../stores/carStore";
-const carStore = useCarStore();
+/* import { useCarStore } from "../stores/carStore"; */
+//const carStore = useCarStore();
+
+const currentTo = localStorage.getItem("toDate");
+const currentFrom = localStorage.getItem("fromDate");
+const filteredCarData = ref([]);
+const cars = ref([]);
+onMounted(async () => {
+  const response = await fetch("http://localhost:3000/cars");
+  cars.value = await response.json();
+  console.log(cars);
+
+  filteredCarData.value = cars.value.filter((car) => {
+    const from = Date.parse(currentFrom);
+    const to = Date.parse(currentTo);
+    return car.to >= from && car.from <= to;
+  });
+  console.log(filteredCarData.value);
+
+});
 
 const activeIdx = ref(0);
 const user = ref({
@@ -23,7 +41,46 @@ function rentClicked(id) {
 
 function submitRent() {
   console.log("Submit rent clicked");
-  carStore.rentCar(activeIdx.value);
+
+  console.log("Renting car id:", cars.value.find((car) => car.id === activeIdx.value));
+  const rentedCar = cars.value.find((car) => car.id === activeIdx.value);
+
+  fetch("http://localhost:3000/rentals", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      id: activeIdx.value,
+      brand: rentedCar.brand,
+      model: rentedCar.model,
+      pricePerDay: rentedCar.pricePerDay,
+      image: rentedCar.image,
+      rentFrom: Date.parse(currentFrom),
+      rentTo: Date.parse(currentTo),
+      totalPrice:
+        ((Date.parse(currentTo) - Date.parse(currentFrom)) /
+          (1000 * 60 * 60 * 24)) *
+        rentedCar.pricePerDay,
+      user: user.value,
+      from:rentedCar.from,
+      to: rentedCar.to,
+    }),
+  })
+    .then((res) => res.json())
+    .then((data) => console.log("Új autó hozzáadva:", data));
+
+  //Delete from cars
+  fetch(`http://localhost:3000/cars/${rentedCar.id}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  })
+    .then((res) => res.json())
+    .then((data) => console.log("Autó törölve:", data));
+
+    filteredCarData.value = filteredCarData.value.filter(car => car.id !== rentedCar.id);
   activeIdx.value = 0;
   user.value = {
     name: "",
@@ -32,24 +89,18 @@ function submitRent() {
     phone: "",
     duration: 0,
   };
-  console.log(carStore.rentedCars);
 }
-
-onMounted(() => {
-  console.log(carStore.filteredCarData);
-  console.log((Date.parse(carStore.currentTo)-Date.parse(carStore.currentFrom))/ (1000 * 60 * 60 * 24));
-});
 </script>
 
 <template>
   <h1>Car List Component</h1>
-  <div v-for="car in carStore.filteredCarData" class="container">
-    <div :key="car.id" class="row align-items-center mb-2">
+  <div v-for="car in filteredCarData" :key="car.id" class="container">
+    <div class="row align-items-center mb-2">
       <div class="col-sm">
         <span class="fw-bold">{{ car.brand }}</span>
         <span class="ms-2">{{ car.model }}</span>
       </div>
-      <div class="col-sm"><img :src="car.image" alt=""></div>
+      <div class="col-sm"><img :src="car.image" alt="" /></div>
       <div class="col-sm">{{ car.pricePerDay }}$ / day</div>
       <div class="col-sm">
         <button @click="rentClicked(car.id)" class="btn btn-primary">
@@ -110,9 +161,15 @@ onMounted(() => {
             aria-describedby="inputGroup-sizing-sm"
           />
         </div>
-        
+
         <button @click="submitRent()" type="button" class="btn btn-secondary">
-          Rent car for {{ (Date.parse(carStore.currentTo)-Date.parse(carStore.currentFrom))/ (1000 * 60 * 60 * 24)*car.pricePerDay }} $
+          Rent car for
+          {{
+            ((Date.parse(currentTo) - Date.parse(currentFrom)) /
+              (1000 * 60 * 60 * 24)) *
+            car.pricePerDay
+          }}
+          $
         </button>
       </div>
     </div>
