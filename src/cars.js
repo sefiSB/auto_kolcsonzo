@@ -15,16 +15,13 @@ export function generateCars(num) {
       id: faker.string.uuid(),
       brand: faker.vehicle.manufacturer(),
       model: faker.vehicle.model(),
-      cmprfrom: fromDate,
-      cmprto: toDate,
       from: Date.parse(fromDate),
       to: Date.parse(toDate),
       pricePerDay: faker.number.int({ min: 20, max: 200 }),
       image: faker.image.urlPicsumPhotos({ width: 200, height: 120 }),
-      user: null
+      user: null,
     });
   }
   const rentals = [];
   return cars;
-
 }

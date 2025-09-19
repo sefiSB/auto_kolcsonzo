@@ -100,7 +100,7 @@ function submitRent() {
         <span class="fw-bold">{{ car.brand }}</span>
         <span class="ms-2">{{ car.model }}</span>
       </div>
-      <div class="col-sm"><img :src="car.image" alt="" /></div>
+      <div class="col-sm"><img class="w-50" :src="car.image" alt="" /></div>
       <div class="col-sm">{{ car.pricePerDay }}$ / day</div>
       <div class="col-sm">
         <button @click="rentClicked(car.id)" class="btn btn-primary">
