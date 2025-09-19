@@ -1,10 +1,13 @@
 <script setup>
 import { ref, onMounted } from "vue";
-/* import { useCarStore } from "../stores/carStore"; */
-//const carStore = useCarStore();
+
 
 const currentTo = localStorage.getItem("toDate");
 const currentFrom = localStorage.getItem("fromDate");
+
+const cf = ref(currentFrom);
+const ct = ref(currentTo);
+
 const filteredCarData = ref([]);
 const cars = ref([]);
 onMounted(async () => {
@@ -18,8 +21,19 @@ onMounted(async () => {
     return car.to >= from && car.from <= to;
   });
   console.log(filteredCarData.value);
-
 });
+
+function buttonClicked() {
+  localStorage.setItem("fromDate", currentFrom);
+  localStorage.setItem("toDate", currentTo);
+  filteredCarData.value = cars.value.filter((car) => {
+    const from = Date.parse(cf.value);
+    const to = Date.parse(ct.value);
+    console.log(from, to);
+    return car.to >= from && car.from <= to;
+  });
+  console.log(filteredCarData.value);
+}
 
 const activeIdx = ref(0);
 const user = ref({
@@ -27,7 +41,6 @@ const user = ref({
   email: "",
   address: "",
   phone: "",
-  duration: 0,
 });
 
 function rentClicked(id) {
@@ -42,7 +55,10 @@ function rentClicked(id) {
 function submitRent() {
   console.log("Submit rent clicked");
 
-  console.log("Renting car id:", cars.value.find((car) => car.id === activeIdx.value));
+  console.log(
+    "Renting car id:",
+    cars.value.find((car) => car.id === activeIdx.value)
+  );
   const rentedCar = cars.value.find((car) => car.id === activeIdx.value);
 
   fetch("http://localhost:3000/rentals", {
@@ -63,7 +79,7 @@ function submitRent() {
           (1000 * 60 * 60 * 24)) *
         rentedCar.pricePerDay,
       user: user.value,
-      from:rentedCar.from,
+      from: rentedCar.from,
       to: rentedCar.to,
     }),
   })
@@ -80,22 +96,80 @@ function submitRent() {
     .then((res) => res.json())
     .then((data) => console.log("Autó törölve:", data));
 
-    filteredCarData.value = filteredCarData.value.filter(car => car.id !== rentedCar.id);
+  filteredCarData.value = filteredCarData.value.filter(
+    (car) => car.id !== rentedCar.id
+  );
   activeIdx.value = 0;
   user.value = {
     name: "",
     email: "",
     address: "",
     phone: "",
-    duration: 0,
   };
 }
+
+
+
 </script>
 
 <template>
-  <h1>Car List Component</h1>
-  <div v-for="car in filteredCarData" :key="car.id" class="container">
-    <div class="row align-items-center mb-2">
+  <nav
+    class="navbar navbar-expand-lg navbar-light bg-info-subtle px-5 fixed-top"
+  >
+    <router-link to="/"><img  class="img-small mx-5" src="../assets/car.png" alt=""></router-link>
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-toggle="collapse"
+      data-target="#navbarNav"
+      aria-controls="navbarNav"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item active">
+          <router-link to="/" class="nav-link">Home</router-link>
+        </li>
+        
+      </ul>
+      <form class="d-flex ms-auto">
+        <label for="fromdate" class=""> Start date</label>
+        <input
+          id="fromdate"
+          v-model="cf"
+          class="form-control mr-sm-2 mx-3"
+          type="date"
+          placeholder="Kezdő dátum"
+        />
+
+        <label for="todate" class="">End date</label>
+        <input
+          id="todate"
+          v-model="ct"
+          class="form-control mr-sm-2 mx-3"
+          type="date"
+          placeholder="Záró dátum"
+        />
+        <button
+          @click.prevent="buttonClicked"
+          v-bind:class="
+            cf && ct && cf < ct ? '' : 'disabled'
+          "
+          class="btn btn-secondary my-2 my-sm-0 mx-3"
+          type="submit"
+        >
+          Search
+        </button>
+      </form>
+    </div>
+  </nav>
+
+  <div v-for="car in filteredCarData" :key="car.id" class="container mt-5">
+    <div class="row align-items-center mb-2 border p-3 bg-light rounded shadow-sm">
       <div class="col-sm">
         <span class="fw-bold">{{ car.brand }}</span>
         <span class="ms-2">{{ car.model }}</span>
@@ -103,8 +177,8 @@ function submitRent() {
       <div class="col-sm"><img class="w-50" :src="car.image" alt="" /></div>
       <div class="col-sm">{{ car.pricePerDay }}$ / day</div>
       <div class="col-sm">
-        <button @click="rentClicked(car.id)" class="btn btn-primary">
-          Rent
+        <button @click="rentClicked(car.id)" class="btn btn-dark">
+          ↓
         </button>
       </div>
     </div>
@@ -114,7 +188,7 @@ function submitRent() {
         { 'd-none': activeIdx !== car.id },
       ]"
     >
-      <div class="col-auto">
+      <div class="col-auto p-4 border bg-light rounded shadow-sm">
         <div class="input-group input-group-sm mb-2">
           <span class="input-group-text">Name</span>
           <input
@@ -162,7 +236,7 @@ function submitRent() {
           />
         </div>
 
-        <button @click="submitRent()" type="button" class="btn btn-secondary">
+        <button @click="submitRent()" type="button" class="btn btn-secondary" :class="user.name && user.email && user.address && user.phone ? '' : 'disabled'">
           Rent car for
           {{
             ((Date.parse(currentTo) - Date.parse(currentFrom)) /
@@ -176,8 +250,13 @@ function submitRent() {
   </div>
 </template>
 
-<style scoped>
+<style>
 .read-the-docs {
   color: #888;
+}
+
+.img-small {
+  width: 100px;
+  height: auto;
 }
 </style>

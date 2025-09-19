@@ -42,7 +42,6 @@ function savechanges(){
     }),}).then((response) => response.json())
     .then((data) => {
       console.log("Success:", data);
-      alert("Car details updated successfully!");
     })
     .catch((error) => {
       console.error("Error:", error);
